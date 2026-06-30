@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: spicyclaw
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:spicyclaw}?currentSchema=${POSTGRES_SCHEMA:spicyclaw}
+    username: ${POSTGRES_USER:spicyclaw}
+    password: ${POSTGRES_PASSWORD:spicyclaw}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: SET search_path TO ${POSTGRES_SCHEMA:spicyclaw}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+  docker:
+    compose:
+      enabled: true
+      file: classpath:compose.yaml
+      lifecycle-management: start_only
+      readiness:
+        timeout: 2m
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:spicyclaw}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_uuid
+      schema: ${POSTGRES_SCHEMA:spicyclaw}
+
+server:
+  port: 8080
+
+agentscope:
+  # model 配置已迁移至数据库 claw_llm_model，启动时 seed 默认项（见 ClawModelRegistryService）
+  # 以下 dashscope 段仅用于首次 seed，之后请通过 /api/models 管理
+  dashscope:
+    enabled: true
+    api-key: ${DASHSCOPE_API_KEY:}
+    model-name: qwen-plus
+    stream: true
+  agent:
+    enabled: true
+    name: SpicyClaw
+    sys-prompt: |
+      You are SpicyClaw, a personal work assistant (WorkBuddy-style).
+      Help the user with coding, writing, planning, and daily work tasks.
+      When a skill is relevant, load it via load_skill_through_path before acting.
+      Be concise, actionable, and prefer step-by-step execution.
+    max-iters: 15
+
+spicyclaw:
+  home: ${SPICYCLAW_HOME:${user.home}/.spicyclaw}
+  skills-dir: ${SPICYCLAW_SKILLS_CACHE_DIR:}
+  skills-store-dir: ${SPICYCLAW_SKILLS_STORE_DIR:}
+  clawhub:
+    registry-url: https://clawhub.ai
+    enabled: true
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:8080
+  security:
+    enabled: true
+    default-user:
+      username: ${SPICYCLAW_ADMIN_USER:admin}
+      password: ${SPICYCLAW_ADMIN_PASSWORD:spicyclaw}
+      display-name: Admin

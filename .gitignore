@@ -1,0 +1,49 @@
+HELP.md
+target/
+spicyclaw-server/target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Node monorepo ###
+node_modules/
+package-lock.json
+desktop/release/
+
+### Frontend (@spicyclaw/web，目录名 front/) ###
+front/node_modules/
+front/dist/
+front/.env.local
+front/.env.*.local
+
+### Docker / Compose ###
+spicyclaw-server/compose.env
+.env

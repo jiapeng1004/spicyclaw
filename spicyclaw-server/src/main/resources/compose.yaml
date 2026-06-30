@@ -1,0 +1,67 @@
+# 华为云 SWR docker.io 代理前缀（华北-北京四）
+# 官方镜像路径：{prefix}/library/{name}:{tag}
+# 复制 compose.env.example → compose.env 后按需修改
+x-hw-mirror: &hw-mirror swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io
+
+name: spicyclaw
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/postgres:16-alpine}
+    env_file:
+      - path: compose.env
+        required: false
+    container_name: spicyclaw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-spicyclaw}
+      POSTGRES_USER: ${POSTGRES_USER:-spicyclaw}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spicyclaw}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Shanghai
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - spicyclaw_pg:/var/lib/postgresql/data
+    networks:
+      - spicyclaw
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  redis:
+    image: ${REDIS_IMAGE:-swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/redis:7-alpine}
+    env_file:
+      - path: compose.env
+        required: false
+    container_name: spicyclaw-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-spicyclaw}
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - spicyclaw_redis:/data
+    networks:
+      - spicyclaw
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD:-spicyclaw}" ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+networks:
+  spicyclaw:
+    name: spicyclaw-net
+    driver: bridge
+
+volumes:
+  spicyclaw_pg:
+    name: spicyclaw-pg-data
+  spicyclaw_redis:
+    name: spicyclaw-redis-data

@@ -1,0 +1,65 @@
+{
+  "name": "spicyclaw-desktop",
+  "private": true,
+  "version": "0.0.1",
+  "description": "SpicyClaw Electron shell — 复用 @spicyclaw/web 渲染层",
+  "main": "electron/main.mjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w @spicyclaw/web\" \"wait-on http://localhost:5173 && cross-env SPICYCLAW_DEV=1 electron .\"",
+    "build": "npm run build:electron -w @spicyclaw/web",
+    "start": "cross-env SPICYCLAW_PROD=1 electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && cross-env ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win nsis"
+  },
+  "dependencies": {
+    "@spicyclaw/web": "*"
+  },
+  "devDependencies": {
+    "app-builder-bin": "^5.0.0-alpha.10",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "34.5.8",
+    "electron-builder": "25.1.8",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "electronVersion": "34.5.8",
+    "npmRebuild": false,
+    "appId": "icu.jiapeng.spicyclaw",
+    "productName": "SpicyClaw",
+    "directories": {
+      "output": "build/out"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../node_modules/@spicyclaw/web/dist",
+        "to": "web/dist",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+  /\_/\
+ ( o.o )    ╭──────────────╮
+  > ^ <     │   Spicyclaw  │
+            ╰──────────────╯
+     🌸  Built with purr & code! 🌸
+
+:: App     : ${spring.application.name:Spicyclaw}
+:: Version : ${application.formatted-version:v1.0.0}
+:: Profile : ${spring.profiles.active:default}
+:: Boot    : ${spring-boot.version} | Java ${java.version}
+
