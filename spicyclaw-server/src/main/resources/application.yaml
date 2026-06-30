@@ -65,6 +65,9 @@ spicyclaw:
     allowed-origins: http://localhost:5173,http://localhost:8080
   security:
     enabled: true
+    jwt:
+      secret: ${SPICYCLAW_JWT_SECRET:}
+      expiration-hours: ${SPICYCLAW_JWT_EXPIRATION_HOURS:24}
     default-user:
       username: ${SPICYCLAW_ADMIN_USER:admin}
       password: ${SPICYCLAW_ADMIN_PASSWORD:spicyclaw}

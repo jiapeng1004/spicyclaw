@@ -1,9 +1,7 @@
 import 'dart:convert';
 
-import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_config.dart';
 import '../models/chat_models.dart';
@@ -11,33 +9,61 @@ import '../models/skill_models.dart';
 import '../models/user.dart';
 
 class SpicyclawApi {
-  SpicyclawApi._(this._dio);
+  SpicyclawApi._(this._dio, this._prefs);
 
+  static const _tokenKey = 'spicyclaw-access-token';
   static SpicyclawApi? _instance;
 
   static Future<SpicyclawApi> create() async {
     if (_instance != null) return _instance!;
-    final dir = await getApplicationDocumentsDirectory();
-    final jar = PersistCookieJar(storage: FileStorage('${dir.path}/cookies'));
+    final prefs = await SharedPreferences.getInstance();
     final dio = Dio(BaseOptions(
       baseUrl: AppConfig.apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(minutes: 5),
       headers: {'Content-Type': 'application/json'},
     ));
-    dio.interceptors.add(CookieManager(jar));
-    _instance = SpicyclawApi._(dio);
-    return _instance!;
+    final api = SpicyclawApi._(dio, prefs);
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final token = api._readToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+      onError: (error, handler) {
+        if (error.response?.statusCode == 401) {
+          api._clearToken();
+        }
+        handler.next(error);
+      },
+    ));
+    _instance = api;
+    return api;
   }
 
   final Dio _dio;
+  final SharedPreferences _prefs;
+
+  String? _readToken() => _prefs.getString(_tokenKey);
+
+  Future<void> _saveToken(String token) => _prefs.setString(_tokenKey, token);
+
+  Future<void> _clearToken() => _prefs.remove(_tokenKey);
 
   Future<User> login(String username, String password) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/auth/login',
       data: {'username': username, 'password': password},
     );
-    return User.fromJson(res.data!);
+    final data = res.data!;
+    final token = data['accessToken'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('登录响应缺少 accessToken');
+    }
+    await _saveToken(token);
+    return User.fromJson(data);
   }
 
   Future<User> me() async {
@@ -46,7 +72,11 @@ class SpicyclawApi {
   }
 
   Future<void> logout() async {
-    await _dio.post<void>('/auth/logout');
+    try {
+      await _dio.post<void>('/auth/logout');
+    } finally {
+      await _clearToken();
+    }
   }
 
   Future<List<ChatSession>> listSessions() async {

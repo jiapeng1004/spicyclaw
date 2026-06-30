@@ -1,9 +1,16 @@
 import { apiBaseUrl } from '../config/env'
+import { authHeader, clearAccessToken, getStoredToken, hasStoredToken, saveAccessToken } from '../auth/token'
 
 export interface User {
   id: string
   username: string
   displayName: string
+}
+
+export interface LoginResult extends User {
+  accessToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 export interface Session {
@@ -57,8 +64,51 @@ export interface LlmModel {
   updatedAt: string
 }
 
-const fetchDefaults: RequestInit = {
-  credentials: 'include',
+export interface UsagePackage {
+  id: string
+  name: string
+  statusLabel?: string
+  description: string
+  hint?: string
+  totalPoints: number
+  usedPoints: number
+  remainingPoints: number
+  badge?: string
+  purchasable: boolean
+}
+
+export interface UsageRecord {
+  requestId: string
+  pointsConsumed: number
+  userPrompt: string
+  model: string
+  createdAt: string
+}
+
+export interface UsageOverview {
+  activityPackage: UsagePackage
+  addonPackage: UsagePackage
+  records: UsageRecord[]
+}
+
+export interface AgentExpert {
+  id: string
+  name: string
+  description: string
+  sysPrompt: string
+  maxIters: number
+  defaultModelSlug: string | null
+  enabled: boolean
+}
+
+export interface McpConnector {
+  id: string
+  name: string
+  transport: string
+  endpoint: string
+  description: string
+  enabled: boolean
+  status: string
 }
 
 async function parseError(res: Response): Promise<string> {
@@ -74,10 +124,16 @@ async function parseError(res: Response): Promise<string> {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${apiBaseUrl}${path}`, {
-    ...fetchDefaults,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader(),
+      ...init?.headers,
+    },
   })
+  if (res.status === 401) {
+    clearAccessToken()
+  }
   if (!res.ok) {
     throw new Error(await parseError(res))
   }
@@ -86,14 +142,39 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  login: (username: string, password: string) =>
-    request<User>('/auth/login', {
+  hasToken: hasStoredToken,
+  getToken: getStoredToken,
+
+  login: async (username: string, password: string) => {
+    const res = await fetch(`${apiBaseUrl}/auth/login`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
-    }),
+    })
+    if (!res.ok) {
+      throw new Error(await parseError(res))
+    }
+    const result = (await res.json()) as LoginResult
+    if (!result.accessToken) {
+      throw new Error('登录响应缺少 accessToken')
+    }
+    saveAccessToken(result.accessToken)
+    return result as User
+  },
+
   me: () => request<User>('/auth/me'),
-  logout: () =>
-    fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST', ...fetchDefaults }),
+
+  logout: async () => {
+    try {
+      await fetch(`${apiBaseUrl}/auth/logout`, {
+        method: 'POST',
+        headers: { ...authHeader() },
+      })
+    } finally {
+      clearAccessToken()
+    }
+  },
+
   health: () => request<{ status: string }>('/health'),
   listModels: () => request<LlmModel[]>('/models'),
   listSessions: () => request<Session[]>('/chat/sessions'),
@@ -103,18 +184,27 @@ export const api = {
       body: JSON.stringify(options ?? {}),
     }),
   deleteSession: async (id: string) => {
-    const res = await fetch(`${apiBaseUrl}/chat/sessions/${id}`, { method: 'DELETE', ...fetchDefaults })
+    const res = await fetch(`${apiBaseUrl}/chat/sessions/${id}`, {
+      method: 'DELETE',
+      headers: { ...authHeader() },
+    })
+    if (res.status === 401) clearAccessToken()
     if (!res.ok) throw new Error(await parseError(res))
   },
   listMessages: (sessionId: string) =>
     request<Message[]>(`/chat/sessions/${sessionId}/messages`),
   streamMessage: async function* (sessionId: string, content: string) {
     const res = await fetch(`${apiBaseUrl}/chat/sessions/${sessionId}/stream`, {
-      ...fetchDefaults,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeader(),
+      },
       body: JSON.stringify({ content }),
     })
+    if (res.status === 401) {
+      clearAccessToken()
+    }
     if (!res.ok || !res.body) {
       throw new Error(await parseError(res))
     }
@@ -153,4 +243,25 @@ export const api = {
   reloadSkills: () =>
     request<Skill[]>('/skills/reload', { method: 'POST' }),
   skillConfig: () => request<SkillConfig>('/skills/config'),
+  usageOverview: (days = 7) => request<UsageOverview>(`/usage/overview?days=${days}`),
+  listAgents: () => request<AgentExpert[]>('/agents'),
+  listMcpConnectors: () => request<McpConnector[]>('/connectors/mcp'),
+  registerMcpConnector: (body: {
+    name: string
+    transport: string
+    endpoint: string
+    description?: string
+  }) =>
+    request<McpConnector>('/connectors/mcp', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteMcpConnector: async (id: string) => {
+    const res = await fetch(`${apiBaseUrl}/connectors/mcp/${id}`, {
+      method: 'DELETE',
+      headers: { ...authHeader() },
+    })
+    if (res.status === 401) clearAccessToken()
+    if (!res.ok) throw new Error(await parseError(res))
+  },
 }

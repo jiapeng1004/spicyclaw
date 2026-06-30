@@ -28,18 +28,36 @@ async function submit() {
 <template>
   <div class="login">
     <form class="card" @submit.prevent="submit">
-      <h2>登录 SpicyClaw</h2>
-      <p class="hint">使用管理员账号访问 Agent 与技能管理</p>
-      <label>
-        用户名
-        <input v-model="username" autocomplete="username" required />
-      </label>
-      <label>
-        密码
-        <input v-model="password" type="password" autocomplete="current-password" required />
-      </label>
+      <div class="brand">
+        <span class="logo">🦞</span>
+        <div>
+          <h1>SpicyClaw</h1>
+          <p>你的职场超能力</p>
+        </div>
+      </div>
+
+      <div class="fields">
+        <label>
+          <span>用户名</span>
+          <input v-model="username" autocomplete="username" required />
+        </label>
+        <label>
+          <span>密码</span>
+          <input
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            @keydown.enter="submit"
+          />
+        </label>
+      </div>
+
       <p v-if="error" class="error">{{ error }}</p>
-      <button type="submit" :disabled="loading">{{ loading ? '登录中…' : '登录' }}</button>
+
+      <button type="submit" class="submit" :disabled="loading">
+        {{ loading ? '登录中…' : '进入工作台' }}
+      </button>
     </form>
   </div>
 </template>
@@ -49,55 +67,88 @@ async function submit() {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: #0d1117;
+  background: var(--wb-bg);
 }
 
 .card {
-  width: min(360px, 92vw);
+  width: min(400px, 92vw);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
-  background: #151922;
-  border: 1px solid #252a36;
-  border-radius: 12px;
+  gap: 20px;
+  padding: 36px;
+  background: var(--wb-bg-elevated);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-xl);
+  box-shadow: var(--wb-shadow-lg);
 }
 
-h2 {
-  margin: 0;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.hint {
+.logo {
+  font-size: 40px;
+}
+
+.brand h1 {
   margin: 0;
-  color: #8b949e;
-  font-size: 13px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: var(--wb-text-secondary);
+  font-size: 14px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 13px;
-  color: #c9d1d9;
+}
+
+label span {
+  font-size: 12px;
+  color: var(--wb-text-secondary);
 }
 
 input {
   padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #30363d;
-  background: #0d1117;
-  color: #f0f6fc;
+  border-radius: var(--wb-radius-sm);
+  border: 1px solid var(--wb-border);
+  background: var(--wb-bg-elevated);
+  color: var(--wb-text);
 }
 
-button {
-  margin-top: 4px;
-  background: #ff6b35;
+input:focus {
+  outline: none;
+  border-color: var(--wb-accent);
+}
+
+.submit {
+  background: var(--wb-accent);
   color: #fff;
+  padding: 11px 16px;
+  font-weight: 500;
+  border-radius: var(--wb-radius-sm);
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--wb-accent-hover);
 }
 
 .error {
   margin: 0;
-  color: #ff7b72;
+  color: var(--wb-danger);
   font-size: 13px;
 }
 </style>

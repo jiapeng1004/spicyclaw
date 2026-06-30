@@ -1,11 +1,11 @@
 package icu.jiapeng.spicyclaw.auth;
 
 import icu.jiapeng.spicyclaw.auth.dto.LoginRequest;
+import icu.jiapeng.spicyclaw.auth.dto.LoginResponse;
 import icu.jiapeng.spicyclaw.auth.dto.UserResponse;
 import icu.jiapeng.spicyclaw.security.ClawUserDetailsService;
+import icu.jiapeng.spicyclaw.security.JwtTokenService;
 import icu.jiapeng.spicyclaw.security.UserProfile;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,9 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,17 +23,21 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final ClawUserDetailsService userDetailsService;
+    private final JwtTokenService jwtTokenService;
 
     @PostMapping("/login")
-    public UserResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        Authentication authentication = authenticationManager.authenticate(
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        return toResponse(userDetailsService.requireProfileByUsername(request.username()));
+        UserProfile profile = userDetailsService.requireProfileByUsername(request.username());
+        JwtTokenService.TokenIssueResult token = jwtTokenService.issueToken(profile);
+        return new LoginResponse(
+                profile.id(),
+                profile.username(),
+                profile.displayName(),
+                token.accessToken(),
+                token.tokenType(),
+                token.expiresIn());
     }
 
     @GetMapping("/me")
@@ -46,12 +47,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(HttpServletRequest request) {
-        SecurityContextHolder.clearContext();
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+    public void logout() {
+        // JWT 无状态，客户端丢弃令牌即可。
     }
 
     private UserResponse toResponse(UserProfile profile) {

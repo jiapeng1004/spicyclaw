@@ -1,10 +1,74 @@
-:root {
-  color-scheme: dark;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #e8eaed;
-  background: #0f1117;
+  font-size: 14px;
+
+  --wb-bg: #f5f6f8;
+  --wb-bg-elevated: #ffffff;
+  --wb-bg-hover: #f0f1f3;
+  --wb-bg-active: #e8eaed;
+  --wb-border: #dee0e3;
+  --wb-border-subtle: #ebecef;
+  --wb-text: #1f2329;
+  --wb-text-secondary: #646a73;
+  --wb-text-muted: #8f959e;
+  --wb-accent: #0d9d7a;
+  --wb-accent-hover: #0b8568;
+  --wb-accent-soft: rgba(13, 157, 122, 0.1);
+  --wb-success: #2ea043;
+  --wb-danger: #e34d59;
+  --wb-link: #0d9d7a;
+  --wb-pill-active-bg: #2e2e2e;
+  --wb-pill-active-text: #ffffff;
+  --wb-btn-primary-bg: #2e2e2e;
+  --wb-btn-primary-text: #ffffff;
+  --wb-segment-bg: #f0f1f3;
+  --wb-segment-active-bg: #ffffff;
+  --wb-scrollbar: #c9cdd4;
+  --wb-sidebar-width: 248px;
+  --wb-settings-width: 280px;
+  --wb-detail-width: 320px;
+  --wb-radius-sm: 6px;
+  --wb-radius: 10px;
+  --wb-radius-lg: 16px;
+  --wb-radius-xl: 20px;
+  --wb-shadow: 0 4px 24px rgba(31, 35, 41, 0.08);
+  --wb-shadow-lg: 0 8px 32px rgba(31, 35, 41, 0.12);
+
+  color: var(--wb-text);
+  background: var(--wb-bg);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --wb-bg: #111111;
+  --wb-bg-elevated: #1a1a1a;
+  --wb-bg-hover: #252525;
+  --wb-bg-active: #2e2e2e;
+  --wb-border: #333333;
+  --wb-border-subtle: #2a2a2a;
+  --wb-text: #e8eaed;
+  --wb-text-secondary: #a0a4ab;
+  --wb-text-muted: #6e737a;
+  --wb-accent: #0d9d7a;
+  --wb-accent-hover: #10b38a;
+  --wb-accent-soft: rgba(13, 157, 122, 0.15);
+  --wb-success: #3fb950;
+  --wb-danger: #f85149;
+  --wb-link: #10b38a;
+  --wb-pill-active-bg: #e8eaed;
+  --wb-pill-active-text: #1a1a1a;
+  --wb-btn-primary-bg: #e8eaed;
+  --wb-btn-primary-text: #1a1a1a;
+  --wb-segment-bg: #252525;
+  --wb-segment-active-bg: #3a3a3a;
+  --wb-scrollbar: #444444;
+  --wb-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --wb-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -14,6 +78,10 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow: hidden;
+  background: var(--wb-bg);
+  color: var(--wb-text);
+  transition: background 0.2s, color 0.2s;
 }
 
 #app {
@@ -23,11 +91,33 @@ body {
 button {
   cursor: pointer;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--wb-radius-sm);
   padding: 8px 14px;
+  font: inherit;
+  transition: background 0.15s, color 0.15s, opacity 0.15s, border-color 0.15s;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
   font: inherit;
 }
 
-input, textarea {
-  font: inherit;
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--wb-scrollbar);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

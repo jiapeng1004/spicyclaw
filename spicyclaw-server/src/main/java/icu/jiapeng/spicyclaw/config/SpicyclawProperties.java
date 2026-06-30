@@ -40,6 +40,15 @@ public class SpicyclawProperties {
         /** 是否启用 Spring Security；测试环境可设为 false。 */
         private boolean enabled = true;
         private DefaultUser defaultUser = new DefaultUser();
+        private Jwt jwt = new Jwt();
+    }
+
+    @Data
+    public static class Jwt {
+        /** HS256 签名密钥，生产环境务必通过环境变量覆盖。 */
+        private String secret = "";
+        /** 访问令牌有效时长（小时）。 */
+        private long expirationHours = 24;
     }
 
     @Data
