@@ -195,6 +195,7 @@ export const api = {
     request<Session>('/chat/sessions', {
       method: 'POST',
       body: JSON.stringify(options ?? {}),
+      revokeOn401: true,
     }),
   deleteSession: async (id: string) => {
     const res = await fetch(`${apiBaseUrl}/chat/sessions/${id}`, {

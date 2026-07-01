@@ -150,7 +150,12 @@ async function createSession() {
     switchTab('chat')
     return session.id
   } catch (e) {
-    workspaceError.value = e instanceof Error ? e.message : '创建任务失败'
+    const msg = e instanceof Error ? e.message : '创建任务失败'
+    if (msg.includes('未登录') || msg.includes('令牌')) {
+      user.value = null
+    } else {
+      workspaceError.value = msg
+    }
     return null
   } finally {
     creatingSession.value = false
