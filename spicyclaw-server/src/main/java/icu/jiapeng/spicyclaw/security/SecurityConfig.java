@@ -1,14 +1,13 @@
 package icu.jiapeng.spicyclaw.security;
 
+import icu.jiapeng.spicyclaw.api.ApiErrorHttpWriter;
 import icu.jiapeng.spicyclaw.config.SpicyclawProperties;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -24,7 +23,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,6 +34,7 @@ public class SecurityConfig {
 
     private final SpicyclawProperties properties;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiErrorHttpWriter apiErrorHttpWriter;
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -57,14 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/health", "/api/auth/login").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-                    response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                    response.getWriter()
-                            .write("""
-                                    {"type":"about:blank","title":"Unauthorized","status":401,\
-                                    "detail":"未登录或访问令牌无效"}\
-                                    """);
+                    apiErrorHttpWriter.writeUnauthorized(response, "未登录或访问令牌无效");
                 }))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -28,6 +28,7 @@ function modelLabel(slug: string | null | undefined, models: LlmModel[]) {
 
 <template>
   <div class="page">
+    <div class="page-inner">
     <header class="page-head">
       <h1>专家管理</h1>
       <p>Agent 智能体：负责理解任务、规划步骤并调度技能与 MCP 连接器执行。</p>
@@ -75,16 +76,22 @@ function modelLabel(slug: string | null | undefined, models: LlmModel[]) {
         <li><b>技能</b>：SKILL.md 可复用能力模块</li>
       </ul>
     </aside>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .page {
   flex: 1;
+  width: 100%;
   overflow: auto;
-  padding: 24px 32px;
-  max-width: 860px;
+  padding: 32px 48px;
   background: var(--wb-bg-elevated);
+}
+
+.page-inner {
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .page-head h1 {

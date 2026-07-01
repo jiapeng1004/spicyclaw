@@ -1,5 +1,11 @@
 import { apiBaseUrl } from '../config/env'
-import { authHeader, clearAccessToken, getStoredToken, hasStoredToken, saveAccessToken } from '../auth/token'
+import {
+  authHeader,
+  clearAuthSession,
+  getStoredToken,
+  hasStoredToken,
+  saveAuthSession,
+} from '../auth/token'
 
 export interface User {
   id: string
@@ -122,17 +128,19 @@ async function parseError(res: Response): Promise<string> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit & { revokeOn401?: boolean }): Promise<T> {
+  const { revokeOn401 = path === '/auth/me', ...fetchInit } = init ?? {}
   const res = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
+    ...fetchInit,
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       ...authHeader(),
-      ...init?.headers,
+      ...fetchInit.headers,
     },
   })
-  if (res.status === 401) {
-    clearAccessToken()
+  if (res.status === 401 && revokeOn401) {
+    clearAuthSession()
   }
   if (!res.ok) {
     throw new Error(await parseError(res))
@@ -158,11 +166,16 @@ export const api = {
     if (!result.accessToken) {
       throw new Error('登录响应缺少 accessToken')
     }
-    saveAccessToken(result.accessToken)
-    return result as User
+    const user: User = {
+      id: result.id,
+      username: result.username,
+      displayName: result.displayName,
+    }
+    saveAuthSession(result.accessToken, user)
+    return user
   },
 
-  me: () => request<User>('/auth/me'),
+  me: () => request<User>('/auth/me', { revokeOn401: true }),
 
   logout: async () => {
     try {
@@ -171,7 +184,7 @@ export const api = {
         headers: { ...authHeader() },
       })
     } finally {
-      clearAccessToken()
+      clearAuthSession()
     }
   },
 
@@ -186,9 +199,9 @@ export const api = {
   deleteSession: async (id: string) => {
     const res = await fetch(`${apiBaseUrl}/chat/sessions/${id}`, {
       method: 'DELETE',
+      cache: 'no-store',
       headers: { ...authHeader() },
     })
-    if (res.status === 401) clearAccessToken()
     if (!res.ok) throw new Error(await parseError(res))
   },
   listMessages: (sessionId: string) =>
@@ -196,15 +209,13 @@ export const api = {
   streamMessage: async function* (sessionId: string, content: string) {
     const res = await fetch(`${apiBaseUrl}/chat/sessions/${sessionId}/stream`, {
       method: 'POST',
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         ...authHeader(),
       },
       body: JSON.stringify({ content }),
     })
-    if (res.status === 401) {
-      clearAccessToken()
-    }
     if (!res.ok || !res.body) {
       throw new Error(await parseError(res))
     }
@@ -261,7 +272,6 @@ export const api = {
       method: 'DELETE',
       headers: { ...authHeader() },
     })
-    if (res.status === 401) clearAccessToken()
     if (!res.ok) throw new Error(await parseError(res))
   },
 }

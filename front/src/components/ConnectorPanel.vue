@@ -56,6 +56,7 @@ onMounted(load)
 
 <template>
   <div class="page">
+    <div class="page-inner">
     <header class="page-head">
       <h1>连接器</h1>
       <p>MCP（Model Context Protocol）连接器：接入外部工具、数据库与 SaaS，供 Agent 调用。</p>
@@ -111,16 +112,22 @@ onMounted(load)
     <p v-if="!loading && !connectors.length" class="state">
       暂无 MCP 连接器，注册后 Agent 可通过 MCP 协议调用外部能力。
     </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .page {
   flex: 1;
+  width: 100%;
   overflow: auto;
-  padding: 24px 32px;
-  max-width: 860px;
+  padding: 32px 48px;
   background: var(--wb-bg-elevated);
+}
+
+.page-inner {
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .page-head h1 {

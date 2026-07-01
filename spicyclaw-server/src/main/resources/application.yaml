@@ -1,6 +1,8 @@
 spring:
   application:
     name: spicyclaw
+  main:
+    web-application-type: servlet
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:spicyclaw}?currentSchema=${POSTGRES_SCHEMA:spicyclaw}
     username: ${POSTGRES_USER:spicyclaw}

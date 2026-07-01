@@ -2,7 +2,9 @@ package icu.jiapeng.spicyclaw.chat.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import icu.jiapeng.spicyclaw.agent.ClawAgentSessionManager;
+import icu.jiapeng.spicyclaw.chat.dto.CreateSessionRequest;
 import icu.jiapeng.spicyclaw.chat.dto.MessageResponse;
+import icu.jiapeng.spicyclaw.chat.dto.SendMessageRequest;
 import icu.jiapeng.spicyclaw.chat.dto.SessionResponse;
 import icu.jiapeng.spicyclaw.chat.entity.ChatMessage;
 import icu.jiapeng.spicyclaw.chat.entity.ChatSession;
@@ -21,8 +23,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -50,11 +54,12 @@ public class ChatService {
     }
 
     @Transactional
-    public SessionResponse createSession(String title, String modelSlug) {
+    public SessionResponse createSession(CreateSessionRequest request) {
+        CreateSessionRequest req = request != null ? request : CreateSessionRequest.empty();
         OffsetDateTime now = OffsetDateTime.now();
-        String modelRef = modelRegistryService.resolveRegistryKey(modelSlug);
+        String modelRef = modelRegistryService.resolveRegistryKey(req.modelSlug());
         ChatSession session = new ChatSession();
-        session.setTitle(title == null || title.isBlank() ? "New Chat" : title);
+        session.setTitle(req.title() == null || req.title().isBlank() ? "New Chat" : req.title());
         session.setAgentName("SpicyClaw");
         session.setModelRef(modelRef);
         session.setCreatedAt(now);
@@ -74,7 +79,20 @@ public class ChatService {
                 .toList();
     }
 
-    public Flux<ServerSentEvent<String>> streamReply(String sessionId, String userContent) {
+    public void streamReply(String sessionId, SendMessageRequest request, SseEmitter emitter) {
+        streamReplyFlux(sessionId, request.content()).subscribe(
+                event -> {
+                    try {
+                        emitter.send(SseEmitter.event().name(event.event()).data(event.data()));
+                    } catch (IOException ex) {
+                        emitter.completeWithError(ex);
+                    }
+                },
+                emitter::completeWithError,
+                emitter::complete);
+    }
+
+    private Flux<ServerSentEvent<String>> streamReplyFlux(String sessionId, String userContent) {
         ChatSession session = requireSession(sessionId);
         saveMessage(sessionId, "user", userContent);
 

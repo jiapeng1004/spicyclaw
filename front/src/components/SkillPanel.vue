@@ -41,7 +41,8 @@ async function reload() {
 </script>
 
 <template>
-  <div class="skills" :class="{ compact }">
+  <div class="skills">
+    <div class="page-inner">
     <header v-if="!compact" class="page-head">
       <h1>技能管理</h1>
       <p>ClawHub 兼容 SKILL.md 格式。技能是可复用的能力模块，由 Agent 按需加载，与专家和 MCP 连接器相互独立。</p>
@@ -100,22 +101,34 @@ async function reload() {
       </li>
     </ul>
     <p v-if="!skills.length" class="empty">暂无技能，可从 ClawHub 安装或放入 skills 目录</p>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .skills {
   flex: 1;
+  width: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   min-height: 0;
+  padding: 32px 48px;
+  background: var(--wb-bg-elevated);
 }
 
-.skills:not(.compact) {
-  padding: 24px 32px;
-  max-width: 860px;
+.page-inner {
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skills.compact {
+  padding: 0;
+  background: transparent;
 }
 
 .page-head h1 {

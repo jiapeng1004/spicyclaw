@@ -3,15 +3,18 @@ import { ref, nextTick, computed } from 'vue'
 import { api, type LlmModel, type Message } from '../api/client'
 
 const props = defineProps<{
-  sessionId: string
+  sessionId: string | null
   messages: Message[]
   models: LlmModel[]
   modelSlug: string | null
+  error?: string
+  ensureSession: () => Promise<string | null>
 }>()
 
 const emit = defineEmits<{
   sent: []
   'update:modelSlug': [slug: string | null]
+  'clear-error': []
 }>()
 
 const input = ref('')
@@ -39,6 +42,14 @@ const enabledModels = computed(() => props.models.filter((m) => m.enabled))
 async function send() {
   const text = input.value.trim()
   if (!text || streaming.value) return
+
+  emit('clear-error')
+  let sessionId = props.sessionId
+  if (!sessionId) {
+    sessionId = await props.ensureSession()
+    if (!sessionId) return
+  }
+
   input.value = ''
   streaming.value = true
   streamText.value = ''
@@ -46,7 +57,7 @@ async function send() {
   scrollBottom()
 
   try {
-    for await (const chunk of api.streamMessage(props.sessionId, text)) {
+    for await (const chunk of api.streamMessage(sessionId, text)) {
       if (chunk.event === 'delta' || chunk.event === 'error') {
         streamText.value += chunk.data
         scrollBottom()
@@ -82,6 +93,8 @@ function fillPrompt(text: string) {
 
 <template>
   <div class="workspace">
+    <p v-if="error" class="banner error">{{ error }}</p>
+
     <div v-if="hasMessages" ref="listRef" class="thread">
       <div v-for="m in messages" :key="m.id" class="msg" :class="m.role">
         <div class="msg-label">{{ m.role === 'user' ? '你' : 'SpicyClaw' }}</div>
@@ -200,6 +213,19 @@ function fillPrompt(text: string) {
   min-height: 0;
   background: var(--wb-bg-elevated);
   position: relative;
+}
+
+.banner {
+  margin: 12px 48px 0;
+  padding: 10px 14px;
+  border-radius: var(--wb-radius-sm);
+  font-size: 13px;
+}
+
+.banner.error {
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.25);
+  color: var(--wb-danger);
 }
 
 .thread {

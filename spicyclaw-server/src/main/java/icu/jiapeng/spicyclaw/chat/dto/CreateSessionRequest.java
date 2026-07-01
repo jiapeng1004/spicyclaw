@@ -17,4 +17,9 @@ public record CreateSessionRequest(
         @Size(max = 128, message = "modelSlug 不能超过128个字符")
         @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "modelSlug 只能包含小写字母、数字和连字符")
         String modelSlug) {
+
+    /** 空请求体（全部使用默认值）时使用。 */
+    public static CreateSessionRequest empty() {
+        return new CreateSessionRequest(null, null);
+    }
 }

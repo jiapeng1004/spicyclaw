@@ -11,10 +11,15 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -33,11 +38,8 @@ public class ChatController {
     }
 
     @PostMapping("/sessions")
-    public SessionResponse createSession(
-            @Valid @RequestBody(required = false) CreateSessionRequest request) {
-        String title = request == null ? null : request.title();
-        String modelSlug = request == null ? null : request.modelSlug();
-        return chatService.createSession(title, modelSlug);
+    public SessionResponse createSession(@Valid @RequestBody(required = false) CreateSessionRequest request) {
+        return chatService.createSession(request);
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -59,12 +61,14 @@ public class ChatController {
     }
 
     @PostMapping(value = "/sessions/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamMessage(
+    public SseEmitter streamMessage(
             @PathVariable
             @NotBlank(message = "sessionId 不能为空")
             @Size(max = 36, message = "sessionId 格式无效")
             String sessionId,
             @Valid @RequestBody SendMessageRequest request) {
-        return chatService.streamReply(sessionId, request.content());
+        SseEmitter emitter = new SseEmitter(0L);
+        chatService.streamReply(sessionId, request, emitter);
+        return emitter;
     }
 }
