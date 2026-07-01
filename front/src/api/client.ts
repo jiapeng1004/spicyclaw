@@ -189,8 +189,8 @@ export const api = {
   },
 
   health: () => request<{ status: string }>('/health'),
-  listModels: () => request<LlmModel[]>('/models'),
-  listSessions: () => request<Session[]>('/chat/sessions'),
+  listModels: () => request<LlmModel[]>('/models', { revokeOn401: true }),
+  listSessions: () => request<Session[]>('/chat/sessions', { revokeOn401: true }),
   createSession: (options?: { title?: string; modelSlug?: string }) =>
     request<Session>('/chat/sessions', {
       method: 'POST',
@@ -203,10 +203,13 @@ export const api = {
       cache: 'no-store',
       headers: { ...authHeader() },
     })
-    if (!res.ok) throw new Error(await parseError(res))
+    if (!res.ok) {
+      if (res.status === 401) clearAuthSession()
+      throw new Error(await parseError(res))
+    }
   },
   listMessages: (sessionId: string) =>
-    request<Message[]>(`/chat/sessions/${sessionId}/messages`),
+    request<Message[]>(`/chat/sessions/${sessionId}/messages`, { revokeOn401: true }),
   streamMessage: async function* (sessionId: string, content: string) {
     const res = await fetch(`${apiBaseUrl}/chat/sessions/${sessionId}/stream`, {
       method: 'POST',
@@ -218,6 +221,7 @@ export const api = {
       body: JSON.stringify({ content }),
     })
     if (!res.ok || !res.body) {
+      if (res.status === 401) clearAuthSession()
       throw new Error(await parseError(res))
     }
     const reader = res.body.getReader()
@@ -241,23 +245,25 @@ export const api = {
       }
     }
   },
-  listSkills: () => request<Skill[]>('/skills'),
+  listSkills: () => request<Skill[]>('/skills', { revokeOn401: true }),
   installSkill: (path: string) =>
     request<Skill>('/skills/install', {
       method: 'POST',
       body: JSON.stringify({ path }),
+      revokeOn401: true,
     }),
   toggleSkill: (slug: string, enabled: boolean) =>
     request<Skill>(`/skills/${slug}/enabled`, {
       method: 'PUT',
       body: JSON.stringify({ enabled }),
+      revokeOn401: true,
     }),
   reloadSkills: () =>
-    request<Skill[]>('/skills/reload', { method: 'POST' }),
-  skillConfig: () => request<SkillConfig>('/skills/config'),
-  usageOverview: (days = 7) => request<UsageOverview>(`/usage/overview?days=${days}`),
-  listAgents: () => request<AgentExpert[]>('/agents'),
-  listMcpConnectors: () => request<McpConnector[]>('/connectors/mcp'),
+    request<Skill[]>('/skills/reload', { method: 'POST', revokeOn401: true }),
+  skillConfig: () => request<SkillConfig>('/skills/config', { revokeOn401: true }),
+  usageOverview: (days = 7) => request<UsageOverview>(`/usage/overview?days=${days}`, { revokeOn401: true }),
+  listAgents: () => request<AgentExpert[]>('/agents', { revokeOn401: true }),
+  listMcpConnectors: () => request<McpConnector[]>('/connectors/mcp', { revokeOn401: true }),
   registerMcpConnector: (body: {
     name: string
     transport: string
@@ -267,12 +273,16 @@ export const api = {
     request<McpConnector>('/connectors/mcp', {
       method: 'POST',
       body: JSON.stringify(body),
+      revokeOn401: true,
     }),
   deleteMcpConnector: async (id: string) => {
     const res = await fetch(`${apiBaseUrl}/connectors/mcp/${id}`, {
       method: 'DELETE',
       headers: { ...authHeader() },
     })
-    if (!res.ok) throw new Error(await parseError(res))
+    if (!res.ok) {
+      if (res.status === 401) clearAuthSession()
+      throw new Error(await parseError(res))
+    }
   },
 }

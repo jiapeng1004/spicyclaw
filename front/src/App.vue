@@ -65,18 +65,12 @@ async function checkAuth() {
     authChecked.value = true
     return
   }
-  const cached = getStoredUser()
-  if (cached) {
-    user.value = cached
-  }
   try {
     const me = await api.me()
     user.value = me
     saveAuthSession(api.getToken()!, me)
   } catch {
-    if (!api.hasToken()) {
-      user.value = null
-    }
+    user.value = null
   }
   authChecked.value = true
   if (user.value) {
