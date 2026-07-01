@@ -1,20 +1,27 @@
----
-description: SpicyClaw Java 后端代码规范（大厂风格）
-globs: spicyclaw-server/**/*.java
-alwaysApply: false
+# SpicyClaw Agent Rules
+
+SpicyClaw 项目的通用 Agent 规则，适用于所有 AI 助手。
+
+## 通用原则
+
+1. **避免无意义的一次性 helper** — 只用一次的 2 行包装函数应内联。
+2. **组件不做业务编排** — 复杂流程放在 `api/client.ts` 或 composable；组件负责展示与事件。
+3. **API 类型显式定义** — 使用 `interface` / `type`，禁止 `any`、松散 `Record<string, unknown>` 作为 API 契约。
+4. **禁止手写 JSON 解析假设** — 响应结构必须与后端 DTO 字段一致，用 TypeScript 类型约束。
+
 ---
 
-# SpicyClaw Java 后端规范
+## Java 后端规则（spicyclaw-server/）
 
 编写或修改 `spicyclaw-server` 代码时必须遵守以下约定。
 
-## 1. 禁止无意义的单次私有方法
+### 1. 禁止无意义的单次私有方法
 
 - 私有方法应表达**可复用**或**显著复杂**的逻辑；仅被调用一次且只有 1–3 行包装的 `private` 方法应内联到调用处。
 - 允许：多处复用的 `toResponse(entity)`、复杂的流式/事务编排、清晰的步骤拆分（每个步骤 ≥5 行或有独立语义）。
 - 禁止：`private foo()` 只在一处使用且仅转发参数/拆字段。
 
-## 2. Controller 只做 HTTP 适配
+### 2. Controller 只做 HTTP 适配
 
 Controller 职责边界：
 
@@ -29,20 +36,20 @@ Controller 职责边界：
 - 组装复杂响应（交给 Service 或 DTO 工厂方法）
 - 认证/发 token 等核心流程（放在 `*Service`）
 
-## 3. 请求参数必须 Validation 校验
+### 3. 请求参数必须 Validation 校验
 
 - 所有 `@RequestBody` 使用 `@Valid` + record/class 上的约束（`@NotBlank`、`@Size`、`@Pattern` 等）。
 - 路径/查询参数使用 `@Validated` + `@PathVariable` / `@RequestParam` 上的约束。
 - 可选 body 用 `@RequestBody(required = false)`，默认值与归一化在 **Service** 或 DTO 的 `empty()` / 工厂方法中处理，不在 Controller 写 `if (request == null)`.
 
-## 4. API 返回必须是显式 DTO
+### 4. API 返回必须是显式 DTO
 
 - 禁止 Controller / 对外 API 返回 `Map`、`JsonNode`、`ObjectNode`、`JSONObject` 或手写 JSON 字符串。
 - 成功响应：使用 `*Response` record/class。
 - 错误响应：使用 `api.dto` 下的错误 DTO（如 `ApiErrorResponse`、`ValidationErrorResponse`），通过 `@RestControllerAdvice` 或 `ObjectMapper` 序列化，禁止 `Map.of` / 字符串拼接 JSON。
 - 实体层（Entity）字段若需动态扩展，内部可用 Map；**对外层必须映射为 DTO**，不直接暴露 Entity 或 Map。
 
-## 分层与命名
+### 分层与命名
 
 | 层 | 包 | 职责 |
 |----|-----|------|
@@ -53,7 +60,7 @@ Controller 职责边界：
 
 DTO 命名：`CreateXxxRequest`、`UpdateXxxRequest`、`XxxResponse`。
 
-## 示例
+### 示例
 
 ```java
 // ✅ Controller
@@ -72,3 +79,18 @@ public SessionResponse createSession(CreateSessionRequest request) {
 String title = request == null ? null : request.title();
 return chatService.createSession(title, modelSlug);
 ```
+
+---
+
+## 前端规则（front/）
+
+### Vue 约定
+
+- 使用 `<script setup lang="ts">`。
+- Props / Emits 显式泛型定义。
+- 样式沿用 `style.css` 中的 WorkBuddy design token（`--wb-*`）。
+
+### API 层
+
+- 所有请求经 `front/src/api/client.ts` 的 `request()`。
+- 401 清 token 策略集中在一处，不在各组件重复。
